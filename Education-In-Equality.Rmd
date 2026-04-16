@@ -1,0 +1,1079 @@
+---
+title: "Education Inequality in United States"
+author: "Mohanmmed Johir, Jue Jue , Ngai Yaw"
+date: "2025-12-09"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# Introduction
+
+The report examines education inequality in the 1,000 schools in the United States. The data will consists  of the data concerning funding, test scores, student demographics and dropout rates. The distribution of resources and their relation to academic performance is essential to define the schools in need and comprehend the forces behind educational achievements.
+
+**Research Questions:**
+1. What is the distribution of funds in schools?
+2. What influences student's test scores?
+3. Are there any correlations between funding and academic outcomes?
+4. What are the high performance schools in the face of socio economic challenges?
+
+
+# Analyzes "Education Inequality" across 1,000 schools in the United States
+# Basic Data analysis
+
+## 1.1  import data
+
+```{r}
+library(tidyverse)
+library(DT)
+library(readr)
+library(reactable)
+library(ggplot2)
+library(webshot2)
+library(chromote)
+library(dplyr)
+library(plotly)
+edu_data <- read_csv("Group/education_inequality_data.csv")
+head(edu_data, n = 1000)
+
+datatable(edu_data)
+
+```
+
+
+## 1.2 Data Cleaning 
+
+```{r}
+# Check the data set's column and roles
+glimpse(edu_data)
+
+# check the data set's column and roles
+dim(edu_data)
+
+
+## Convert school_type and grade_level to factors
+edu_data <- edu_data %>%
+  mutate(
+    school_type = as.factor(school_type),
+    grade_level = as.factor(grade_level)
+  )
+
+## check the data type
+str(edu_data)
+
+# checking total missing values
+sum(is.na(edu_data))
+
+# checking missing values of columns
+colSums(is.na(edu_data))
+
+# Check for duplicates ids
+sum(duplicated(edu_data$id))
+```
+
+** The size of our data set is 1,000 schools and 12 variables. All the data are correct such as school information is stored  as factors and numerical data (such as funding , test scores and income levels ) are stored as numbers. No Missing Values under any column and  no school IDS duplication. Therefore, our data set is complete and clean**
+
+
+
+##1.3 Summary statistics including mean, median, mode, and other basic statistics.
+
+## 1.3 Summary Statistics
+
+```{r}
+# edu data set overall summary
+summary(edu_data)
+```
+
+**The numerical variables are widely distributed:**
+
+**Funding per Student: The mean is 15,154 ( Range: 5,013 to 24,982 ) which demonstrates great financial disparity.**
+
+**Average Test Score: The average is 70.00% ( Range: 40.00% to 100.00%) and the performance difference is wide.**
+
+**Percent Low Income: The median is 54.10% (Range: 10.20% to 94.90%), which affirms the presence of wide and erratic socio-economic difficulties.**
+
+**Student Teacher Ratio: The mean is 19.73 (Range: 10.00 to 30.00).**
+
+**Dropout Rate: The average is 7.77% (Minimum: 0.50% to 14.99%).**
+
+
+# mode function
+```{r}
+get_mode <- function(x) {
+  x <- na.omit(x)
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+get_mode(edu_data$funding_per_student_usd)
+get_mode(edu_data$avg_test_score_percent)
+get_mode(edu_data$percent_low_income)
+get_mode(edu_data$dropout_rate_percent)
+```
+
+Schools' most common funding per student is around `r get_mode(edu_data$funding_per_student_usd)`.
+
+Schools' most common average test score percent is around `r get_mode(edu_data$avg_test_score_percent)`.
+
+Schools' most common dropout rate percent is around `r get_mode(edu_data$dropout_rate_percent)`.
+
+## 1.4 Groped Summary by State, School Type, and Grade Level
+
+```{r}
+# Fine Interest school types, grade level, and school and state
+# Grouped summary particularly state, school_type, and grade_level with including min, mean, max, and sd
+
+test_score_summary_by_state_type_level <- edu_data %>%
+  group_by(state, school_type, grade_level) %>%
+  summarise(
+    Lower = min(avg_test_score_percent),
+    Average = mean(avg_test_score_percent),
+    Upper = max(avg_test_score_percent),
+    SD = sd(avg_test_score_percent),
+    Difference = max(avg_test_score_percent) - min(avg_test_score_percent),
+    .groups = "drop"
+  ) %>%
+  arrange(Average)
+
+reactable(test_score_summary_by_state_type_level)
+print(test_score_summary_by_state_type_level)
+summary(test_score_summary_by_state_type_level)
+```
+
+**Based on the checking data set table, Illinois has the highest test score of around (82.64 percentage) and its standard Deviation(SD) is 13. 265567 in the private schools and middle Schools**
+
+**Michigan has the lowest average test score (55.05 percent) and SD is 13.062378 in the case of Private High Schools.Its performance on average scores is low in general.**
+
+** States (Illinois and Michigan) with the larges gaps in performance have the highest and the lowerest scores in the data set in the private schools.**
+
+## 1.5 Summary by School Type and Grade Level Only
+
+```{r}
+t# Finding min, mean, max, sd, and difference in school type and grade level
+
+test_score_summary_by_level <- edu_data %>%
+  group_by(school_type, grade_level) %>%
+  summarise(
+    Lower = min(avg_test_score_percent),
+    Average = mean(avg_test_score_percent),
+    Upper = max(avg_test_score_percent),
+    SD = sd(avg_test_score_percent),
+    Difference = max(avg_test_score_percent) - min(avg_test_score_percent),
+    .groups = "drop"
+  ) %>%
+  arrange(Average)
+
+print(test_score_summary_by_level)
+datatable(test_score_summary_by_level)
+summary(test_score_summary_by_level)
+```
+
+
+**According to Test score Analysis summary: we discover the results.**
+
+* **BEST PERFORMANCE: Public High Schools perform best in term of the average test score is (71.50%) **
+
+* **LOWEST PERFORMANCE: Charter Elementary Schools are the lowest in terms of the average score (67.89%)**
+
+* **HIGH INEQUALITY: The entire school/grade groups have a huge gap in the score (58.3 to 59.8 percentage points), which supports high inequality throughout.**
+
+* **Variability: Public Middle Schools are the least consistent (maximum SD: 19.31). The most consistent (lowest SD: 16.43) are Public High Schools.**
+
+**Although maximum scores (around 100 percent) are consistently high, a wide range of scores (mean difference of about 59 points, mean SD of about 17.7) indicates that there is performance inequality in each school type and grade level.**
+
+
+#1.6 Summary Statistics of the Key Variables
+```{r}
+# Find the most interesting three variables Funding, avg_test score and percent low income
+# Combined Summary of the most interesting three variables' Mean, SD, and Range
+
+combined_stats <- edu_data %>%
+  summarise(
+    # Funding per Student
+    Mean_Funding = mean(funding_per_student_usd),
+    SD_Funding = sd(funding_per_student_usd),
+    Range_Funding = max(funding_per_student_usd) - min(funding_per_student_usd),
+    
+    # Average Test Score
+    Mean_Score = mean(avg_test_score_percent),
+    SD_Score = sd(avg_test_score_percent),
+    Range_Score = max(avg_test_score_percent) - min(avg_test_score_percent),
+    
+    # Percent Low Income
+    Mean_LowIncome = mean(percent_low_income),
+    SD_LowIncome = sd(percent_low_income),
+    Range_LowIncome = max(percent_low_income) - min(percent_low_income)
+  )
+
+reactable(combined_stats)
+print(combined_stats, width = Inf)
+```
+
+
+**The funding per student sd(5931) is highly variant, with the richest schools and teh poorest schools differing significantly**
+
+
+**The mean test scores SD (17.7) are evenly distributed. The gap between the best and the worst schools is large.**
+
+
+**Percent low income SD (24.0) is very variable, which proves the existence of gigantic disparities in the poverty levels of students in the schools.**
+
+
+
+# 2. Basic Visualization
+
+## 2.1 Histogram of Funding per Student
+
+```{r}
+ggplot(edu_data, aes(x = funding_per_student_usd)) +
+  geom_histogram(binwidth = 2000, color = "black", fill = "white") +
+  labs(
+    title = "Distribution of Funding per student",
+    x = "Funding per student (USD) ",
+    y = "Count of schools "
+  ) +
+  theme_minimal()
+```
+
+**Funding Distribution Summary Average Funding:**
+
+**The average school is funded approximately at 15,154 per student.**
+
+**Wide Spread:** The funding is very large with minimum of $5,013 or maximum of $24,982.
+
+**High Inequality:** The Standard Deviation (SD 5931) is very big, which confirms that the level of financial inequality is high**
+
+**As the histogram reveals, there is no common amount of funding; schools are distributed through a wide range of financial levels**
+
+**Conclusion: There is high inequality in the distribution of resources in the schools included in the data set.**
+**
+
+
+#2.2 Histogram of test score 
+```{r}
+ggplot (edu_data, aes (x = avg_test_score_percent))+
+  geom_histogram(binwidth = 3, color = "white", fill = "steelblue") +
+  labs (title = "Distribution of Average Test Scores",
+        x = "Averge Test Score (%) ",
+        y = "count of schools") +
+  theme_gray()   
+
+```
+
+**The scores are distributed and this implies that the level of performance of the schools is very different**
+
+**It is not concentrated around any specific range of scores, as most schools are fairly evenly distributed.**
+
+**Most schools have a score of between 70 % and 90 % , but some schools have very low scores of less than 60 %  and also a few above 90 % .**
+
+**This extensive dispersion indicates that the test scores differ significantly among schools, indicating disparity in the performance of outcomes.**
+
+## 2.3 Histogram of Percent Low Income
+
+```{r}
+
+summary(edu_data$percent_low_income)
+
+ggplot(edu_data, aes(x = percent_low_income)) +
+  geom_histogram(binwidth = 5, color = "black", fill = "lightblue") +
+  labs(
+    title = "Distribution of Percent Low Income Students",
+    x = "Low Income Students (%)",
+    y = "Count of Schools"
+  ) +
+  theme_minimal()
+```
+
+* **Poverty is Widespread that reflects that on average there are more than 50% of low-income students at the schools (Median: 54.10%).**
+
+* **High Concentration show Most schools have low-income levels that exceed 33.40% (1 st Quartile).**
+
+* **Skewness Data reveals that the data is skewed at the higher poverty levels, with little number of schools having lower rates than 25.**
+
+* **The large range of poverty levels, with a range of 84.90 to 10.20, is a testament to the fact that percent of low-income is a vital variable in examining education inequality in this data set**
+
+
+## 2.4 Bar Chart - Schools by Grade Level
+```{r}
+# Build Bar chart which is the numbers of Schools by grade level or School Type
+# finding no of schools
+
+edu_data %>%
+  count(grade_level)
+
+ggplot(edu_data, aes(x = grade_level, fill = grade_level)) +
+  geom_bar() +
+  labs(
+    title = "The number of Schools by Grade level",
+    x = "Grade level",
+    y = "Count",
+    fill = "Grade Level" 
+  ) +
+  theme_minimal()
+```
+**This bar chart shows that the number of schools is relatively the same at various grade levels.
+There are the most Elementary schools (345).
+It is much ahead of High schools(330) and Middle schools(325). Overall, there is a good balance in the distribution of schools based on grade level.**
+
+## 2.5 Scatter Plot - Funding vs Test Scores by School Type
+
+```{r}
+# Scatter for funding vs test scores
+
+edu_data %>%
+  ggplot(aes(x = funding_per_student_usd,
+             y = avg_test_score_percent,
+             colour = school_type)) +
+  geom_point(size = 3, alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~ school_type) +
+  labs(
+    title = "Funding per student vs Average Test Score",
+    subtitle = "Panels show each school type with a trend line",
+    x = "Funding per student (USD)",
+    y = "Average test score (%)",
+    colour = "School type"
+  ) +
+  theme_classic()
+```
+
+**Plots Show in shcool types:**
+
+**Charter schools: The slope is a little bit downward, it means that  an increase in funding does not result in an increase in scores.**
+
+**The line of private schools runs upwards, indicating that increased funding is correlated with higher test scores.**
+
+**Public schools: The slope is nearly horizontal, that is, there is no close relation between funding and test scores.**
+
+**The types of schools react to funding differently. Having enough money does not gurantee hig schore s**
+
+## 2.6 Interactive 3D Scatter Plot
+
+```{r}
+
+p_3d <- edu_data %>%
+  # Define the 3 dimensions (X, Y, Z) and the color dimension
+  plot_ly(
+    x = ~funding_per_student_usd,
+    y = ~avg_test_score_percent,
+    z = ~percent_low_income,
+    color = ~school_type,  
+    marker = list(size = 5, opacity = 0.7)
+  ) %>%
+  add_markers() %>%
+  layout(
+    scene = list(
+      xaxis = list(title = 'Funding per Student (USD)'),
+      yaxis = list(title = 'Average Test Score (%)'),
+      zaxis = list(title = 'Low Income Students (%)')
+    ),
+    title = "3D Analysis of Inequality: Funding, Scores, and Poverty by School Type"
+  )
+#play 3d plot
+p_3d
+
+
+temp_html <- tempfile(fileext = ".html")
+htmlwidgets::saveWidget(p_3d, temp_html)
+
+webshot2::webshot(
+  temp_html, 
+  file = "3d_scatter_plot.png", 
+  vwidth = 900, 
+  vheight = 700, 
+  zoom = 2
+)
+```
+
+
+
+
+**The 3D scatter plot represents the correlation between Funding and Test Scores and Poverty at the same time.**
+**Here what we found are**
+
+* **No Linear Trend: The data points create a shapeless cloud that visually proves the previous regression outcomes: The Test Scores are not strongly determined by Funding and Poverty.**
+
+* **High Variability: Both high-scoring and low-scoring schools are found across the board in terms of funding and poverty.**
+
+* **School Type: There is a mixture of all school types (Public, Charter, Private) with no clear performance clusters depending on the type of school.**
+
+* **Conclusion: This enormous difference shows that these three fundamental factors do not solely explain educational outcomes.**
+
+
+
+# 3. Exploratory Data Analysis (EDA)
+
+## 3.1 Descriptive Statistics
+
+```{r}
+# Display first 15 rows
+head(edu_data, n = 15)
+
+# ordering school types to create plots
+edu_data$school_type <- factor((edu_data$school_type),
+  levels = c("Public",
+    "Charter",
+    "Private"))
+
+levels(edu_data$school_type)
+class(edu_data$school_type)
+
+# checking total columns not including  IDS
+
+edu_data %>%
+  select(state,
+    school_name,
+    school_type,
+    ends_with(c("level", "usd", "percent", "ratio", "income", "minority"))) %>%
+  names()
+
+# check all column
+names(edu_data)
+```
+
+**Display the first 15 roles to understand the data set better.**
+
+**The variables such as  state, school type, id, and percent minority, and internet accesspercent also display complete ranges without being split into categories further in this summary. The school type variable was also transformed into an ordered factor and the levels were changed to Public, Charter, Private**
+
+
+## 3.2 Test Scores by School Type
+
+```{r}
+# find min, mean, max, and difference of school type and average test score percent in USA
+
+test_score_by_type <- edu_data %>%
+  group_by(school_type) %>%
+  summarise(
+    lower = min(avg_test_score_percent),
+    Average = mean(avg_test_score_percent),
+    upper = max(avg_test_score_percent),
+    SD_average = sd(avg_test_score_percent),
+    Difference = max(avg_test_score_percent) - min(avg_test_score_percent),
+    .groups = "drop"
+  ) %>%
+  arrange(Average)
+
+print(test_score_by_type)
+```
+
+
+- **Charter schools also have a mean score of **69.1%** and SD of **17.47** indicating a moderate distribution of scores.
+
+- **The highest SD of **18.13** gives an average of **70.4** in the public schools.
+
+- **The averages of private schools are approximately **70.5** with SD of 17.54, which is also similar to charter schools.**
+
+**At the top, all types of schools score approximately 100 percent, and each type has a score range of approximately 59-60 points, indicating a big difference in lowest scoring schools and highest scoring schools.**
+
+**The average scores are generally the same, and the standard deviations indicate that the distribution of the performances in the public schools is the most widespread, whereas the charter and the private schools have a correspondingly narrower distribution.**
+
+## 3.3 State Level Funding per Student
+
+```{r}
+# State level funding per student (min, mean, max, sd and range)
+
+states_funding_summary <- edu_data %>%
+  group_by(state) %>%
+  summarise(
+    Lower = min(funding_per_student_usd),
+    Average = mean(funding_per_student_usd),
+    Upper = max(funding_per_student_usd),
+    SD_Funding = sd(funding_per_student_usd),
+    Difference = max(funding_per_student_usd) - min(funding_per_student_usd),
+    School_Count = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(Average) %>%
+  select(state, School_Count, Lower, Average, Upper, SD_Funding, Difference)
+
+summary(states_funding_summary)
+reactable(states_funding_summary)
+print(states_funding_summary)
+```
+
+
+
+**According to the table, school funding per student across states.**
+
+**Average funding is also varied as states such as Georgia, New York, and North Carolina have the highest averages.
+
+The Lowest (Lower) and Highest values indicate that the level of funding varies significantly in each of the states.
+
+Standard deviation (SDFunding) shows the dispersion of the funding. An increase in SD implies that the difference in funding by schools within that state increases.
+
+The column of Difference (Upper - Lower) indicates the gap in funding. The range is large in all states, which implies that certain schools get a lot more funding than others.
+
+SchoolCount indicates the number of schools that were covered in every state.
+
+Generally: States are widely varied in terms of their funding levels, and all states exhibit a large internal funding disparity between their lowest- and best-funded schools.**
+
+# 4. High-Achieving Schools Analysis
+
+# Filter observation 
+
+## 4.1 Filtering High-Achieving Schools
+
+```{r}
+
+high_achieved_schools <- edu_data %>%
+  group_by(state) %>%
+  mutate(state_score_sd = sd(avg_test_score_percent)) %>%
+  ungroup() %>%
+  filter(grade_level == "High", avg_test_score_percent > 80) %>%
+  select(state, school_name,
+    school_type, grade_level,
+    avg_test_score_percent,
+    ends_with("low_income"),
+    ends_with("access_percent"),
+    state_score_sd) %>%
+  arrange(desc(avg_test_score_percent))
+  
+# View first rows
+head(high_achieved_schools, n = 10)
+
+#  Check structure
+str(high_achieved_schools)
+
+
+summary(high_achieved_schools)
+reactable(high_achieved_schools)
+```
+
+
+**The filter then selected 115 high-achieving schools (out of 300 in the dataset) that had an average test score of more than 80%. Examining this list one can say that:
+
+_ **The high schools that receive above 80 are displayed by the result. It also calculates the amount of variation within each state (that is the statescore_sd) before filtering, which allows us to determine whether the best schools in a state are always good or scattered about. Output stores the location, type, score, poverty and internet-access data of the school, and ranks the list in order of score. An easy method of identifying the best high schools and the level of variation in scores around them.**
+
+
+- **No Single Determinant: The most significant discovery is the disintegration of the poverty-score relationship. All of the top performers are well represented by Public, Private, and Charter schools, which proves the mixed clustering observed in the 3D plot.**
+
+- **Poverty Barrier Broken: The most significant discovery is the disintegration of the poverty-score relationship. Schools with high scores can be found in the whole spectrum of poverty, 10.2-94.9 low-income.**
+
+**Conclusion: This proves that high student poverty does not necessarily mean that a school will not be able to score highly in tests in this data set. These three structural variables are not sufficient in explaining the factors driving success because they are highly localized.**
+
+
+## 4.2 Best Performance by School Type
+
+```{r}
+# Analysis  best performance school type  within school types 
+best_performance_by_school_type <- high_achieved_schools %>%
+  group_by(school_type) %>%
+  summarise(
+    school_count = n(),
+    average_score = round(mean(avg_test_score_percent, na.rm = TRUE), 2),
+    sd_score = round(sd(avg_test_score_percent, na.rm = TRUE), 2),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(average_score))
+  
+
+print(best_performance_by_school_type)
+summary(best_performance_by_school_type)
+
+```
+**The average test score (91.2) is highest in the case of Private Schools and the variability of the score (SD) is 6.07.**
+
+**The best performers (43 schools) are found in Public Schools, however, the mean score (87.8% is the lowest in this category) and the variability in the scores (SD) is 5.73**
+
+**Charter Schools have been the most consistent with the lowest SD of 5.46. This implies that the highest scores of their 37 best schools are near to their average of 90.0%.**
+
+## 4.3High Achieving Schools, Visualizations
+
+
+###  School Type's Test Scores 
+
+```{r}
+ggplot(high_achieved_schools, aes(x = school_type, y = avg_test_score_percent, fill = school_type)) +
+  geom_boxplot() +
+  labs(
+    title = "Test Score Distribution by School Type (High Schools with Score > 80%)",
+    x = "School Type",
+    y = "Test Score (%)"
+  ) +
+  theme_get()
+```
+
+**This plot illustrates the allocation of test scores (high schools that scored above 80) by school type.**
+
+**The median and the top scores are highest in the private schools - they seem to be the highest in general.**
+
+**Charter schools are a bit lower than the private schools but still high.**
+
+**Median of public schools is a little lower, and the dispersion is greater, i.e., the scores are more different.**
+
+**The boxes (IQR) are used to show the range within which the middle half of the scores are; the wider range is represented by the whiskers**
+
+**Nevertheless, it is only the high schools that have a score of above 80, and therefore, it only describes the highest performing schools, but not all high schools.
+Across the highest scoring high schools, the average score of private schools is slightly higher although the public schools are more varied.**
+
+
+
+
+
+### Visualizaton Low Income versus Test Score
+
+```{r }
+
+ggplot(high_achieved_schools, aes(x = percent_low_income, y = avg_test_score_percent)) +
+  geom_point(color = "darkblue", alpha = 0.6) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(
+    title = "Low Income % vs Test Score (High-Performing High Schools)",
+    x = "Low Income Students (%)",
+    y = "Test Score (%)"
+  ) +
+  theme_gray()
+```
+
+**This scatter plot examines the possibility of any trend between the percentage of low-income students and their test scores in high-performing high schools (scores above 80%). The dots are well distributed and without any prominent direction. 
+The red trend line is nearly flat, which means that even in schools with a large number of low-income students still have high scores are possible. 
+That is, in this highest-performing group, low-income percentage does not appear to be a significant influence on test scores**
+
+### Count of High-Performing Schools by Type
+### Showing by Bar Charts
+
+```{r}
+
+ggplot(high_achieved_schools, aes(x = school_type, fill = school_type)) +
+  geom_bar() +
+  labs(
+    title = "Count of High-Performing Schools by Type",
+    x = "School Type", 
+    y = "Count"
+  ) +
+  theme_minimal()
+```
+
+**The chart shows that the public schools are the leader with around 43 high performing schools. 
+They are followed by charter and private schools of about 37 and 35 respectively. This means that the number of superior schools is more in the public schools, probably because they are more numerous. 
+But not very far behind are the charter and the private schools. 
+The portion that we would like to observe is the portion of the total schools that are high-performers in every category. With fewer schools in charter and private, 35-37 high-performers can be viewed as impressive.**
+
+## 4.4 Overall Summary of High-Achieving Schools
+```{r}
+overall_summary <- high_achieved_schools %>% 
+  group_by(school_type) %>%
+  summarise(
+    count = n(),
+    avg_score = round(mean(avg_test_score_percent, na.rm= TRUE), 2),
+    SD = round(sd(avg_test_score_percent, na.rm = TRUE), 2),
+    avg_low_income = round(mean(percent_low_income, na.rm =TRUE), 2),
+    .groups = 'drop'
+  )
+print(overall_summary)
+```
+
+
+
+**Out of the high-achieving high schools (score > 80%), 37 of them are charter schools, 35 are privates, and 43 are publics. The highest scores were in the private schools ( approximately 91.2), charter (90.0) and public (approximately 87.8). The percent of low-income students is also smaller in the average by type: in this subset, the percent of low-income students is slightly higher in the private and charter schools than in the public.**
+
+
+#4.5Summary table for high-achieving schools by type
+
+```{r}
+high_achievers_table <- data.frame(
+  School_Type = c("Private", "Charter", "Public"),
+  Count = c(35, 37, 43),
+  Avg_Score = c(91.2, 90.0, 87.8),
+  SD = c(6.07, 5.46, 5.73),
+  Avg_Low_Income = c(57.1, 56.1, 49.4)
+)
+reactable(high_achievers_table)
+
+print(high_achievers_table)
+```
+
+
+
+
+
+
+
+# 5. Simple Linear Regression
+
+## 5.1 Model Building
+
+```{r}
+model <- lm(avg_test_score_percent ~ funding_per_student_usd, data = edu_data)
+
+# Model summary
+summary(model)
+```
+
+** Simple linear regression to predict test scores based on the funding per student is done by using lm() function. The model is used to estimate the change in test scores with an increase in funding by 1 USD.**
+
+**The funding per student USD coefficient reveals whether funding positively affects test scores.**
+
+**The p-value indicates whether the relationship is significant or not.**
+
+
+**The R-squared value indicates the extent to which funding explains variation in test scores (R^2 is very small and thus the relation is weak).**
+
+## 5.2 Residual Diagnostics
+
+```{r}
+
+par(mfrow = c(2, 2))
+plot(model)
+par(mfrow = c(1, 1))
+```
+
+**The Fitted vs Residual plot test whether the residual values are randomly distributed (good).**
+
+**The scale-Location plot tests whether the variance is a constant.**
+
+**The scale-Location plot checks if variance is constant.**
+
+**The residual vs Leverage identifies influential extreme points**
+
+
+
+## 5.3 Base R Regression  plot
+```{r}
+plot(edu_data$funding_per_student_usd, edu_data$avg_test_score_percent,
+     main = "Linear Regression: Funding vs Test Scores",
+     xlab = "Funding per Student (USD)",
+     ylab = "Average Test Score (%)",
+     pch = 19)
+abline(model, col = "blue", lwd = 2)
+```
+
+**The scatter plot shows the relationships between school funding and test scores 
+The blue Regression Line shows the predicted trend, as Funding increases, test scores tend to increase slightly
+The points are scattered widely, meaning that the relationship is weak but visible.**
+
+
+##5.4 Multiple Linear Regression
+```{r}
+model_full <- lm(avg_test_score_percent ~ 
+                   funding_per_student_usd +
+                   percent_low_income +
+                   percent_minority +
+                   dropout_rate_percent +
+                   student_teacher_ratio +
+                   school_type +
+                   grade_level,
+                 data = edu_data)
+
+summary(model_full)
+```
+
+**The Multiple regression tested whether several variables predict the average test scores.**
+**The model does not statistically significant overall (F(9,990) = 0.567, P =0.824), and none of the individual predictors had a significant effect as (all p> 0.05)**
+**The R-squared value is very low (0.005), meaning that the included variables explains less than 1% of the variation in the test scores.
+#This result suggest that for this data set, test scores are not strongly associated with the school-level characteristic included in the model**
+
+## 5.5 Correlation Matrix
+```{r}
+cor(edu_data[, sapply(edu_data, is.numeric)])
+```
+**In this part I used cor to show all the correlations with the average test scores percentage were extremely small(between -0.02 and 0.04), indicating virtually no linear relationships. This align with the regression results, where none of the predictors significantly explained variations in the test scores. Correlations among independent variables were also very low , suggesting multicollinearity is not an issue.**
+
+
+# 6. Data Manipulation with dplyr
+
+## 6.1 Filter Operations
+```{r}
+
+high_funding <- edu_data %>% filter(funding_per_student_usd > 10000)
+```
+**we only wanted to keep schools with funding above $10000 to focus the highest_funded schools.**
+
+## 6.2 Select Specific Columns
+
+```{r}
+selected_data_subset <- edu_data %>% 
+  select(school_name, funding_per_student_usd, avg_test_score_percent)
+
+```
+**Choose only school names, funding, and test scores to simplify the data-set.**
+
+## 6.3 Create New Variables
+```{r}
+edu_data <- edu_data %>%
+  mutate(score_category = ifelse(avg_test_score_percent >= 70, "High", "Low"))
+```
+**In this part,  a new column  is added and  is labeled as "High or Low" performance baed on a score of 70%**
+## 6.4 Summarize data
+
+```{r}
+summary_table <- edu_data %>%
+  summarize(
+    mean_funding = mean(funding_per_student_usd),
+    mean_score = mean(avg_test_score_percent)
+  )
+```
+**Calculate overall average funding and test scores for the all schools.**
+
+## 6.5 Sort Data by Funding
+```{r}
+sorted_data <- edu_data %>% arrange(desc(funding_per_student_usd))
+```
+**Order schools from highest to lowest funding to easily indentify top-funded schools.**
+
+## 6.6 Group by School Type and Calculate Averages
+```{r}
+result <- edu_data %>%
+  filter(funding_per_student_usd > 8000) %>%
+  select(school_type, funding_per_student_usd, avg_test_score_percent) %>%
+  group_by(school_type) %>%
+  summarize(avg_funding = mean(funding_per_student_usd),
+            avg_score = mean(avg_test_score_percent))
+```
+**For schools with funding above $8,000, calculates average funding and average test score for each school type**
+#result
+```{r} 
+
+reactable(result)
+```
+
+
+
+
+# 7. Additional Visualizations for Report
+
+## 7.1 Scatter Plot Colored by Score Category
+
+```{r}
+# 1. Create the column
+edu_data <- edu_data %>%
+  mutate(score_category = ifelse(avg_test_score_percent >= 70, "High", "Low"))
+
+# 2. Create the plot
+ggplot(edu_data, aes(x = funding_per_student_usd, y = avg_test_score_percent, color = score_category)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(title = "Funding vs Test Scores by Score Category",
+       x = "Funding per Student (USD)",
+       y = "Average Test Score (%)") +
+  theme_minimal()
+```
+
+
+**In this part we used scatter plot to see the relationship between school funding and test scores separately for each school type (Public, Private, etc.).**
+**The scatter plot shows there is no strong relationship between funding and test score.**
+**It also shows the points in the scatter plots spread everywhere.
+This mean we assume that High and low-performing schools appear across all funding ranges, suggesting that funding alone does not determine academic outcomes.**
+
+## 7.2 Facet Plot by School Type
+
+```{r facet-plot}
+# Facet plot by school type
+
+ggplot(edu_data, aes(x = funding_per_student_usd, y = avg_test_score_percent)) +
+  geom_point() +
+  facet_wrap(~ school_type) +
+  theme_minimal()
+```
+
+**In this we wanted separate graphs for each school type. The result still shows there is no relationships within any school type. This means school type does not significantly change the relationships between funding and test scores.**
+
+## 7.3 Alternative Linear Regression Model
+
+```{r lm-alternative}
+# Model Building
+
+# Build linear regression model
+model <- lm(avg_test_score_percent ~ funding_per_student_usd, data = edu_data)
+
+# Model summary
+summary(model)
+```
+
+**In this part we  focus on linear regression on funding and average test score**
+
+**The p-value is 0.52, which is not significant**
+
+**The R-squared is 0.0004, meaning that funding does not explain variation in test scores**
+
+**Therefore, funding alone is not the only factor affecting students scores.**
+
+## 7.4 Base R Regression Visualization
+
+```{r}
+par(mfrow = c(1, 1))
+
+plot(edu_data$funding_per_student_usd, edu_data$avg_test_score_percent,
+  main = "Linear Regression: Funding vs Test Scores",
+  xlab = "Funding per Student (USD)",
+  ylab = "Average Test Score (%)",
+  pch = 19)
+
+abline(model, col = "blue", lwd = 2)
+```
+
+## 7.5 Filter High Funding Schools
+
+```{r}
+high_funding <- edu_data %>%
+  filter(funding_per_student_usd > 15000)
+```
+
+**In this part we  checked whether the high-funded school perform better naturally**
+
+**The result shows the high funding do not necessarily score higher.**
+
+## 7.6 Select and Mutate Operations Revisited
+
+```{r}
+# Select specific columns
+
+selected_data <- edu_data %>%
+  select(school_name, funding_per_student_usd, avg_test_score_percent)
+
+# Create new column: score category
+
+new_data <- edu_data %>%
+  mutate(score_category = ifelse(avg_test_score_percent >= 70, "High", "Low"))
+```
+
+**We  only keep the columns related to my analysis.**
+
+**In this part, we converted the numeric test score into high or low groups.**
+
+```{r display-new-data}
+reactable(new_data)
+```
+
+## 7.7 Summary and Sorting
+
+```{r}
+# Summarize data
+
+summary_table <- edu_data %>%
+  summarize(
+    mean_funding = mean(funding_per_student_usd),
+    mean_score = mean(avg_test_score_percent)
+  )
+
+summary_table
+
+# Sort data by funding descending
+
+sorted_data <- edu_data %>% 
+  arrange(desc(funding_per_student_usd))
+print(sorted_data)
+```
+
+
+**We wanted to show average funding and average test scores for the whole data set.**
+
+**In this part we  listed schools from highest to lowest to identify which schools are extremely well-funded or unfunded.**
+
+## 7.8 Final Group Results
+
+```{r final-result}
+# Group by school type and calculate averages
+
+final_result <- edu_data %>%
+  filter(funding_per_student_usd > 8000) %>%
+  select(school_type, funding_per_student_usd, avg_test_score_percent) %>%
+  group_by(school_type) %>%
+  summarize(
+    avg_funding = mean(funding_per_student_usd),
+    avg_score = mean(avg_test_score_percent),
+    .groups = "drop"
+  )
+
+reactable(final_result)
+print(final_result)
+```
+
+
+
+**In this final part we want to  see if one school type generally perform better than the other.**
+
+**But the result shows no strong difference between school types and, which support the regression result that test scores are not strongly affected by funding.**
+
+**In this part, even though we have already done some work in the parts above, we  again created some additional visualization to better understand the pattern in the data.**
+
+
+# Conclusion
+
+## Summary of Key Findings
+
+
+**his study compared education inequality among 1,000 US schools to answer four important research questions on funding allocation, determinants of test scores, funding-performance associations, and high-performing schools in disadvantaged settings.**
+
+**Key Findings**
+
+1* **Schools Fundings**
+
+There is extreme funding inequality, which is structural. The funding per student is between $5,013 and 24,982 (mean = 15,154, SD = 5,931) which is a difference of 19,969. Internal disparities are similar in all the ten states, which proves that funding inequity is a national-level structural problem and not a local phenomenon.
+
+2* **Considerations that affect student test scores.**
+Amazingly, traditional structural variables have little effects on test scores**
+
+- **Simple regression: Funding predicts only 0.04 percent of the variation in test scores (R 2 = 0.0004, p = 0.521).**
+
+- **Multiple regression: The combination of seven variables (funding, poverty, minority percentage, dropout rates, student-teacher ratio, school type, grade level) has no statistical significance (F = 0.567, p = 0.824, R2 = 0.005).**
+
+- **Correlation analysis: There are slight correlations between all measured variables and test scores ( r < 0.05).**
+
+**These results show that academic outcomes are probably propelled by unmeasured factors, including the quality of teaching, effective leadership, school culture, and practices within instruction, rather than structural factors.**
+
+**Funding & Academic Outcome Correlations.**
+
+**Funding and test scores (r = 0.020) have no meaningful correlation. Schools with high performance (>80% test scores) are spread uniformly along all four quadrants of funding, and school type-specific analysis has disparate results; Charter schools have small negative coefficients, Private schools exhibit weak positive coefficients, and Public schools have almost flat relationships. This shows that sufficient financing is not enough to succeed in academics.**
+
+**Schools with Socioeconomic Problems and High Performance.**
+
+**The most interesting conclusion: 115 high schools (35% of the total number of high schools) had above 80% test scores and had a population composition of 10.2% to 94.9% low-income students. This also involves schools whose student composition is more than 90 percent low-income which is a clear indication that poverty is not a determinant of poor performance.**
+
+**Interestingly, high schools (35% out of the total number of high schools) with a population composition of 10.2 to 94.9% low-income students had above 80% test scores. This also includes schools with a student composition of more than 90 percent low-income which is a clear cut that poverty is not a factor that determines poor performance.**
+
+**This elite group is analyzed and  it reveals**
+
+**The best average test score (91.2) was recorded by the Private Schools.**
+
+**Charter Schools were the most consistent (minimum SD: 5.46), with an average score of 90.0.**
+
+**The highest number of high-performing schools (43 out of a total of 69) were found in Public Schools but with the lowest average score in this category (87.8).**
+
+
+
+
+**Key Point**
+**Our analysis shows that it is not poverty that determines school success. Even schools with high poverty levels can perform exceptionally well - it demonstrates that good practices are more important than the background of students.** 
+
+
+**Essential Data or Missing Data**
+
+**The actual difference in performance can be attributed to virtually nothing in most of the typical data (such as funding or demographics). What matters are things we do not measure, teacher ability, leadership, quality of teaching, curriculum, school culture, and classroom management.**
+
+## Recommendations
+
+**policy makers: Pay close attention to the 115 high performing schools, particularly poor schools, and develop programs on the basis of what they are doing, but not by simply giving them more money.**
+
+**To researchers: Interviews, observations, and long-term studies are recommended to determine what obscured variables are useful in making some schools successful.**
+
+**To school leaders and teachers: Study other schools that have similar students and have higher outcomes. Invest in good teaching practices and actual, evidence-based practices - not in additional money.**
+
+**limitation**
+
+**This data set merely presents correlations (not causality). It does not provide information on most of the critical variables (such as teacher quality or leadership), and considers only test scores. We cannot therefore be certain as to what exactly drives success.**
+
+**It needs to be done with schools in the future and with more types of data to be incorporated so that we can learn more about what actually makes students learn well.**
+
+
+**Final Statement**
+This study counters the notion that bad schools can only perform poorly. It reveals that every school can be successful even the one with limited resources through clever practices, commitment, and effective leadership. The way a school operates is what is important, rather than the amount of money that it receives
+---
+
+# Appendix
+
+```{r}
+sessionInfo()
+```
+
+---
+
+**Report Generated:** December 10, 2025
+**Data Source:** Education Inequality Dataset (1,000 U.S. Schools)
+**Analysis Tools:** R with tidyverse, ggplot2, plotly, and dplyr packages
+**Source**[ https://www.kaggle.com/datasets/shamimhasan8/education-inequality-data)
+
